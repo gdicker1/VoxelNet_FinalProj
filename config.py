@@ -4,6 +4,7 @@
 # config.py
 #  Configuration dictionary for VoxelNet project
 #  Created by G. Dylan Dickerson on 10 Dec 2019
+#  Based on config.py at https://github.com/tsinghua-rll/VoxelNet-tensorflow
 
 import os
 from easydict import EasyDict as edict
