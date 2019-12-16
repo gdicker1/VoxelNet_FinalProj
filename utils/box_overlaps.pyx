@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding:UTF-8 -*-
+
 # --------------------------------------------------------
 # Fast R-CNN
 # Copyright (c) 2015 Microsoft
