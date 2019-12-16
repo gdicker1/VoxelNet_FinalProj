@@ -114,9 +114,9 @@ cfg.PROPOSAL3D_Z_MIN = -2.3
 cfg.PROPOSAL3D_Z_MAX = 1.5
 
 # Target and Voxel info
-cfg.VOXEL_WIDTH = 0.2       # Voxel width in meters
-cfg.VOXEL_HEIGHT = 0.2      # Voxel height in meters
-cfg.VOXEL_DEPTH = 0.4       # Voxel depth in meters
+cfg.VOXEL_WIDTH = 0.2       # Voxel width (x dim) in meters
+cfg.VOXEL_HEIGHT = 0.2      # Voxel height (y dim) in meters
+cfg.VOXEL_DEPTH = 0.4       # Voxel depth (z dim) in meters
 changeTargetObj('Car', cfg)
 
 # Dataset Info

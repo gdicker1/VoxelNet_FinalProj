@@ -22,10 +22,10 @@ from utils.box_overlaps import *
 
 def lidar_to_bird_view(x, y, factor=1):
     # using the cfg.INPUT_XXX
-    a = (x - cfg.X_MIN) / cfg.VOXEL_X_SIZE * factor
-    b = (y - cfg.Y_MIN) / cfg.VOXEL_Y_SIZE * factor
-    a = np.clip(a, a_max=(cfg.X_MAX - cfg.X_MIN) / cfg.VOXEL_X_SIZE * factor, a_min=0)
-    b = np.clip(b, a_max=(cfg.Y_MAX - cfg.Y_MIN) / cfg.VOXEL_Y_SIZE * factor, a_min=0)
+    a = (x - cfg.X_MIN) / cfg.VOXEL_WIDTH * factor
+    b = (y - cfg.Y_MIN) / cfg.VOXEL_HEIGHT * factor
+    a = np.clip(a, a_max=(cfg.X_MAX - cfg.X_MIN) / cfg.VOXEL_WIDTH * factor, a_min=0)
+    b = np.clip(b, a_max=(cfg.Y_MAX - cfg.Y_MIN) / cfg.VOXEL_HEIGHT * factor, a_min=0)
     return a, b
 
 def batch_lidar_to_bird_view(points, factor=1):
@@ -34,10 +34,10 @@ def batch_lidar_to_bird_view(points, factor=1):
     # Outputs:
     #   points (N, 2)
     # using the cfg.INPUT_XXX
-    a = (points[:, 0] - cfg.X_MIN) / cfg.VOXEL_X_SIZE * factor
-    b = (points[:, 1] - cfg.Y_MIN) / cfg.VOXEL_Y_SIZE * factor
-    a = np.clip(a, a_max=(cfg.X_MAX - cfg.X_MIN) / cfg.VOXEL_X_SIZE * factor, a_min=0)
-    b = np.clip(b, a_max=(cfg.Y_MAX - cfg.Y_MIN) / cfg.VOXEL_Y_SIZE * factor, a_min=0)
+    a = (points[:, 0] - cfg.X_MIN) / cfg.VOXEL_WIDTH * factor
+    b = (points[:, 1] - cfg.Y_MIN) / cfg.VOXEL_HEIGHT * factor
+    a = np.clip(a, a_max=(cfg.X_MAX - cfg.X_MIN) / cfg.VOXEL_WIDTH * factor, a_min=0)
+    b = np.clip(b, a_max=(cfg.Y_MAX - cfg.Y_MIN) / cfg.VOXEL_HEIGHT * factor, a_min=0)
     return np.concatenate([a[:, np.newaxis], b[:, np.newaxis]], axis=-1)
 
 
@@ -214,7 +214,7 @@ def corner_to_center_box3d(boxes_corner, coordinate='camera'):
             boxes_corner[idx] = lidar_to_camera_point(boxes_corner[idx])
     ret = []
     for roi in boxes_corner:
-        if cfg.CORNER2CENTER_AVG:  # average version
+        if cfg.USE_CORNER2CENTER_AVG:  # average version
             roi = np.array(roi)
             h = abs(np.sum(roi[:4, 1] - roi[4:, 1]) / 4)
             w = np.sum(
@@ -321,8 +321,8 @@ def lidar_to_bird_view_img(lidar, factor=1):
     for point in lidar:
         x, y = point[0:2]
         if cfg.X_MIN < x < cfg.X_MAX and cfg.Y_MIN < y < cfg.Y_MAX:
-            x, y = int((x - cfg.X_MIN) / cfg.VOXEL_X_SIZE *
-                       factor), int((y - cfg.Y_MIN) / cfg.VOXEL_Y_SIZE * factor)
+            x, y = int((x - cfg.X_MIN) / cfg.VOXEL_WIDTH *
+                       factor), int((y - cfg.Y_MIN) / cfg.VOXEL_HEIGHT * factor)
             birdview[y, x] += 1
     birdview = birdview - np.min(birdview)
     divisor = np.max(birdview) - np.min(birdview)
@@ -515,9 +515,9 @@ def cal_anchors():
     cx = np.tile(cx[..., np.newaxis], 2)
     cy = np.tile(cy[..., np.newaxis], 2)
     cz = np.ones_like(cx) * cfg.ANCHOR_Z
-    w = np.ones_like(cx) * cfg.ANCHOR_W
-    l = np.ones_like(cx) * cfg.ANCHOR_L
-    h = np.ones_like(cx) * cfg.ANCHOR_H
+    w = np.ones_like(cx) * cfg.ANCHOR_WID
+    l = np.ones_like(cx) * cfg.ANCHOR_LEN
+    h = np.ones_like(cx) * cfg.ANCHOR_HEI
     r = np.ones_like(cx)
     r[..., 0] = 0  # 0
     r[..., 1] = 90 / 180 * np.pi  # 90
@@ -596,7 +596,7 @@ def cal_rpn_target(labels, feature_map_shape, anchors, cls='Car', coordinate='li
         targets[batch_id, index_x, index_y, np.array(index_z) * 7 + 1] = (
             batch_gt_boxes3d[batch_id][id_pos_gt, 1] - anchors_reshaped[id_pos, 1]) / anchors_d[id_pos]
         targets[batch_id, index_x, index_y, np.array(index_z) * 7 + 2] = (
-            batch_gt_boxes3d[batch_id][id_pos_gt, 2] - anchors_reshaped[id_pos, 2]) / cfg.ANCHOR_H
+            batch_gt_boxes3d[batch_id][id_pos_gt, 2] - anchors_reshaped[id_pos, 2]) / cfg.ANCHOR_HEI
         targets[batch_id, index_x, index_y, np.array(index_z) * 7 + 3] = np.log(
             batch_gt_boxes3d[batch_id][id_pos_gt, 3] / anchors_reshaped[id_pos, 3])
         targets[batch_id, index_x, index_y, np.array(index_z) * 7 + 4] = np.log(
@@ -633,7 +633,7 @@ def delta_to_boxes3d(deltas, anchors, coordinate='lidar'):
     boxes3d[..., [0, 1]] = deltas[..., [0, 1]] * \
         anchors_d[:, np.newaxis] + anchors_reshaped[..., [0, 1]]
     boxes3d[..., [2]] = deltas[..., [2]] * \
-        cfg.ANCHOR_H + anchors_reshaped[..., [2]]
+        cfg.ANCHOR_HEI + anchors_reshaped[..., [2]]
     boxes3d[..., [3, 4, 5]] = np.exp(
         deltas[..., [3, 4, 5]]) * anchors_reshaped[..., [3, 4, 5]]
     boxes3d[..., 6] = deltas[..., 6] + anchors_reshaped[..., 6]
