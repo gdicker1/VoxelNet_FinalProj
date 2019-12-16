@@ -6,8 +6,12 @@
 #  Created by G. Dylan Dickerson on 12 Dec 2019
 #  Based on group_pointcloud.py and rpn.py at https://github.com/tsinghua-rll/VoxelNet-tensorflow
 
-class VFELayer(object):
+import numpy as np
+import tensorflow as tf
 
+from config import cfg
+
+class VFELayer(object):
     def __init__(self, out_channels, name):
         super(VFELayer, self).__init__()
         self.units = int(out_channels / 2)
@@ -16,6 +20,7 @@ class VFELayer(object):
                 self.units, tf.nn.relu, name='dense', _reuse=tf.AUTO_REUSE, _scope=scope)
             self.batch_norm = tf.layers.BatchNormalization(
                 name='batch_norm', fused=True, _reuse=tf.AUTO_REUSE, _scope=scope)
+
 
     def apply(self, inputs, mask, training):
         # [K, T, 7] tensordot [7, units] = [K, T, units]
@@ -70,6 +75,7 @@ def Deconv2D(Cin, Cout, k, s, p, input, training=True, name='deconv'):
         temp_conv = tf.layers.batch_normalization(
             temp_conv, axis=-1, fused=True, training=training, reuse=tf.AUTO_REUSE, name=scope)
         return tf.nn.relu(temp_conv)
+
 
 def smooth_l1(deltas, targets, sigma=3.0):
     sigma2 = sigma * sigma
