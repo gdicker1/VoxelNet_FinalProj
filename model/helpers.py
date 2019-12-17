@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:UTF-8 -*-
 
-# utils.py
+# helpers.py
 # Contains helper functions just for the network
 # G. Dylan Dickerson
 # Created Dec 17, 2019
