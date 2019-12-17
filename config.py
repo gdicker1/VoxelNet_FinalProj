@@ -100,6 +100,7 @@ cfg.DATA_DIR = os.path.join(cfg.ROOT_DIR, 'data')
 # GPU Info
 cfg.GPU_AVAILABLE = '0'
 cfg.GPU_USE_COUNT = len(cfg.GPU_AVAILABLE.split(','))
+cfg.GPU_MEMORY_FRACTION = 1
 
 # General
 cfg.BV_LOG_FACTOR = 8       # Image log scale factor
