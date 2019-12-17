@@ -211,6 +211,7 @@ class KittiLoader(object):
         if self.is_testset:
             ret = (
                 np.array([tag]),
+                np.array([labels]),
                 np.array([rgb]),
                 np.array([raw_lidar]),
             )

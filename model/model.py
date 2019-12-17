@@ -266,4 +266,22 @@ class VoxelNet(object):
 
     def forwardPass(self, session, data):
         """Perform a single forward pass of the network and get timing"""
-        pass
+        tag = data[0]
+        label = data[1]
+        vox_feature = data[2]
+        vox_number = data[3]
+        vox_coordinate = data[4]
+        img = data[5]
+        lidar=data[6]
+
+        input_feed = {}
+        for idx in range(len(self.avail_gpus)):
+            input_feed[self.vox_feature[idx]] = vox_feature[idx]
+            input_feed[self.vox_number[idx]] = vox_number[idx]
+            input_feed[self.vox_coordinate[idx]] = vox_coordinate[idx]
+
+        output_feed = [self.prob_output, self.delta_output]
+        preRunTime = time.time()
+        probs, deltas = session.run(output_feed, input_feed)
+        postRunTime = time.time()
+        return postRunTime - preRunTime
