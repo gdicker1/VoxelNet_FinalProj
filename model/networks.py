@@ -130,14 +130,14 @@ class RPN(object):
 
 			# Loss
 			self.cls_loss = alpha * (-self.pos_equal_one * tf.log(self.p_pos + small_addon_for_BCE)) / self.pos_equal_one_sum \
-                + beta * (-self.neg_equal_one * tf.log(1 - self.p_pos +
-                                                       small_addon_for_BCE)) / self.neg_equal_one_sum
-            self.cls_loss = tf.reduce_sum(self.cls_loss)
+				+ beta * (-self.neg_equal_one * tf.log(1 - self.p_pos +
+													   small_addon_for_BCE)) / self.neg_equal_one_sum
+			self.cls_loss = tf.reduce_sum(self.cls_loss)
 
-            self.reg_loss = smooth_l1(reg_map * self.pos_equal_one_for_reg, self.targets * self.pos_equal_one_for_reg, sigma) / self.pos_equal_one_sum
-            self.reg_loss = tf.reduce_sum(self.reg_loss)
+			self.reg_loss = smooth_l1(reg_map * self.pos_equal_one_for_reg, self.targets * self.pos_equal_one_for_reg, sigma) / self.pos_equal_one_sum
+			self.reg_loss = tf.reduce_sum(self.reg_loss)
 
-            self.loss = tf.reduce_sum(self.cls_loss + self.reg_loss)
+			self.loss = tf.reduce_sum(self.cls_loss + self.reg_loss)
 
-            self.delta_output = reg_map
-            self.prob_output = self.p_pos
+			self.delta_output = reg_map
+			self.prob_output = self.p_pos

@@ -22,11 +22,11 @@ from train_hook import check_if_should_pause
 # Create parser for command line arguments
 parser = argparse.ArgumentParser(description='training')
 parser.add_argument('-i', '--max_epoch', type=int, default=10,
-	                help='maximum number of epochs to run for')
+					help='maximum number of epochs to run for')
 parser.add_argument('-n', '--tag', type=str, default='default',
 					help='set log tag')
 parser.add_argument('-b', '--single-batch-size', type=int, default=1,
-				    help='set batch size for each GPU')
+					help='set batch size for each GPU')
 parser.add_argument('-l', '--learning_rate', type=float, default=0.001,
 					help='initial learning-rate for training')
 parser.add_argument('-c', '--cls', type=str, default='Car',
@@ -34,7 +34,7 @@ parser.add_argument('-c', '--cls', type=str, default='Car',
 args = parser.parse_args()
 
 # Setup / Create directories used
-dataset_dir = os.path.join(cfg.DATA_DIR, args.tag)
+dataset_dir = cfg.DATA_DIR
 log_dir = os.path.join(cfg.LOG_DIR, args.tag)
 save_model_dir = os.path.join(cfg.CHECKPOINT_DIR, args.tag)
 os.makedirs(log_dir, exist_ok=True)
@@ -60,54 +60,54 @@ def main():
 	with tf.Graph().as_default():
 		global save_model_dir
 		with KittiLoader(object_dir=os.path.join(dataset_dir, 'training'), queue_size=50, require_shuffle=True,
-                         is_testset=False, batch_size=args.single_batch_size * cfg.GPU_USE_COUNT, use_multi_process_num=8, multi_gpu_sum=cfg.GPU_USE_COUNT, aug=True) as train_loader, \
-            KittiLoader(object_dir=os.path.join(dataset_dir, 'testing'), queue_size=50, require_shuffle=True,
-                        is_testset=False, batch_size=args.single_batch_size * cfg.GPU_USE_COUNT, use_multi_process_num=8, multi_gpu_sum=cfg.GPU_USE_COUNT, aug=False) as valid_loader:
+						 is_testset=False, batch_size=args.single_batch_size * cfg.GPU_USE_COUNT, use_multi_process_num=8, multi_gpu_sum=cfg.GPU_USE_COUNT, aug=True) as train_loader, \
+			KittiLoader(object_dir=os.path.join(dataset_dir, 'testing'), queue_size=50, require_shuffle=True,
+						is_testset=False, batch_size=args.single_batch_size * cfg.GPU_USE_COUNT, use_multi_process_num=8, multi_gpu_sum=cfg.GPU_USE_COUNT, aug=False) as valid_loader:
 
-	    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=cfg.GPU_MEMORY_FRACTION,
-	                                        visible_device_list=cfg.GPU_AVAILABLE,
-	                                        allow_growth=True)
-	    config = tf.ConfigProto(gpu_options=gpu_options, device_cout={"GPU": cfg.GPU_USE_COUNT}, allow_soft_placement=True)
-	    with tf.Session(config=config) as sess:
-	    	premodelTime = time.time()
-	    	model = VoxelNet(cls=args.cls, single_batch_size=args.single_batch_size,
-	    					 learning_rate=args.learning_rate, max_gradient_norm=5.0,
-	    					 is_train=True, alpha=1.5, beta=1, avail_gpus=cfg.GPU_AVAILABLE.split(,))
-	    	postmodelTime = time.time()
-	    	getTotalNumberOfParams(model)
-	    	print("It took {} seconds to create model".format(postmodelTime - premodelTime))
+		gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=cfg.GPU_MEMORY_FRACTION,
+											visible_device_list=cfg.GPU_AVAILABLE,
+											allow_growth=True)
+		config = tf.ConfigProto(gpu_options=gpu_options, device_cout={"GPU": cfg.GPU_USE_COUNT}, allow_soft_placement=True)
+		with tf.Session(config=config) as sess:
+			premodelTime = time.time()
+			model = VoxelNet(cls=args.cls, single_batch_size=args.single_batch_size,
+							 learning_rate=args.learning_rate, max_gradient_norm=5.0,
+							 is_train=True, alpha=1.5, beta=1, avail_gpus=cfg.GPU_AVAILABLE.split(,))
+			postmodelTime = time.time()
+			getTotalNumberOfParams(model)
+			print("It took {} seconds to create model".format(postmodelTime - premodelTime))
 
-	    	# Restore from checkpoint if it exists
-	    	if tf.train.get_checkpoint_state(save_model_dir):
-	    		print("Reading model parameters from ", save_model_dir)
-	    		prereadTime = time.time()
-	    		model.saver.restore(sess, tf.train.latest_checkpoint(save_model_dir))
-	    		postreadTime = time.time()
-	    		print("It took {} seconds to read parameters from file".format(postreadTime - prereadTime))
-	    	else: # No checkpoint exists
-	    		print("Initializing model parameters")
-	    		preInitTime = time.time()
-	    		tf.global_variables_initializer().run()
-	    		postInitTime = time.time()
-	    		print("It took {} seconds to freshly initialize model parameters".format(postInitTime - preInitTime))
+			# Restore from checkpoint if it exists
+			if tf.train.get_checkpoint_state(save_model_dir):
+				print("Reading model parameters from ", save_model_dir)
+				prereadTime = time.time()
+				model.saver.restore(sess, tf.train.latest_checkpoint(save_model_dir))
+				postreadTime = time.time()
+				print("It took {} seconds to read parameters from file".format(postreadTime - prereadTime))
+			else: # No checkpoint exists
+				print("Initializing model parameters")
+				preInitTime = time.time()
+				tf.global_variables_initializer().run()
+				postInitTime = time.time()
+				print("It took {} seconds to freshly initialize model parameters".format(postInitTime - preInitTime))
 
-    		# Train and validate
-    		iter_per_epoch = int(len(train_loader) / (args.single_batch_size*cfg.GPU_USE_COUNT))
-    		is_summary, is_summary_image, is_validate = False, False, False
-    		save_model_interval = int(iter_per_epoch / 3)
-    		
-    		summary_interval = 5
-    		summary_image_interval = 20
-    		save_model_interval = int(iter_per_epoch / 3)
-    		validate_interval = 60
+			# Train and validate
+			iter_per_epoch = int(len(train_loader) / (args.single_batch_size*cfg.GPU_USE_COUNT))
+			is_summary, is_summary_image, is_validate = False, False, False
+			save_model_interval = int(iter_per_epoch / 3)
+			
+			summary_interval = 5
+			summary_image_interval = 20
+			save_model_interval = int(iter_per_epoch / 3)
+			validate_interval = 60
 
-    		summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
-    		startTraining = time.time()
-    		while model.epoch.eval() < args.max_epoch:
-    			is_summary, is_summary_image, is_validate = False, False, False
-    			iter = model.global_step.eval()
-    			if not iter % summary_interval:
-    				is_summary = True
+			summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
+			startTraining = time.time()
+			while model.epoch.eval() < args.max_epoch:
+				is_summary, is_summary_image, is_validate = False, False, False
+				iter = model.global_step.eval()
+				if not iter % summary_interval:
+					is_summary = True
 				if not iter % summary_image_interval:
 					is_summary_image = True
 				if not iter % save_model_interval:
@@ -120,9 +120,9 @@ def main():
 
 				ret = model.train_step(sess, train_loader.load(), train=True, summary=is_summary)
 				print('train: {}/{} @ epoch:{}/{} loss: {} reg_loss: {} cls_loss: {} {}'.format(iter,
-                                                                                                iter_per_epoch * args.max_epoch, 
-                                                                                                model.epoch.eval(), args.max_epoch, 
-                                                                                                ret[0], ret[1], ret[2], args.tag))
+																								iter_per_epoch * args.max_epoch, 
+																								model.epoch.eval(), args.max_epoch, 
+																								ret[0], ret[1], ret[2], args.tag))
 				print('Time since training started {} secs'.format(time.time() - startTraining))
 
 				if is_summary:

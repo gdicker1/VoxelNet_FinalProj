@@ -15,80 +15,80 @@ cfg = edict()
 
 # Helper functions
 def selectTargetVoxels(config_t):
-    if config_t.TARGET_OBJ not in possibleOBJ:
-        raise Exception("Invalid target object type selected")
-    
-    if config_t.TARGET_OBJ is 'Car':  # Set the image boundaries in meters
-        config_t.X_MIN = 0
-        config_t.X_MAX = 70.4
-        config_t.Y_MIN = -40
-        config_t.Y_MAX = 40
-        config_t.Z_MIN = -3
-        config_t.Z_MAX = 1
-        config_t.POINT_PER_VOX = 35   # The max number of voxels randomly sampled from each voxel
+	if config_t.TARGET_OBJ not in possibleOBJ:
+		raise Exception("Invalid target object type selected")
+	
+	if config_t.TARGET_OBJ is 'Car':  # Set the image boundaries in meters
+		config_t.X_MIN = 0
+		config_t.X_MAX = 70.4
+		config_t.Y_MIN = -40
+		config_t.Y_MAX = 40
+		config_t.Z_MIN = -3
+		config_t.Z_MAX = 1
+		config_t.POINT_PER_VOX = 35   # The max number of voxels randomly sampled from each voxel
 
-    else:                 # Is a Pedestrian or Cyclist
-        config_t.X_MIN = 0
-        config_t.X_MAX = 48
-        config_t.Y_MIN = -20
-        config_t.Y_MAX = 20
-        config_t.Z_MIN = -3
-        config_t.Z_MAX = 1
-        config_t.POINT_PER_VOX = 45
-    # Calculate number of voxels in input field
-    config_t.INPUT_WIDTH = int((config_t.X_MAX - config_t.X_MIN) / (config.VOXEL_WIDTH))
-    config_t.INPUT_HEIGHT = int((config_t.Y_MAX - config_t.Y_MIN) / (config.VOXEL_HEIGHT))
-    config_t.INPUT_DEPTH = int((config_t.Z_MAX - config_t.Z_MIN) / (config.VOXEL_DEPTH))
+	else:                 # Is a Pedestrian or Cyclist
+		config_t.X_MIN = 0
+		config_t.X_MAX = 48
+		config_t.Y_MIN = -20
+		config_t.Y_MAX = 20
+		config_t.Z_MIN = -3
+		config_t.Z_MAX = 1
+		config_t.POINT_PER_VOX = 45
+	# Calculate number of voxels in input field
+	config_t.INPUT_WIDTH = int((config_t.X_MAX - config_t.X_MIN) / (config_t.VOXEL_WIDTH))
+	config_t.INPUT_HEIGHT = int((config_t.Y_MAX - config_t.Y_MIN) / (config_t.VOXEL_HEIGHT))
+	config_t.INPUT_DEPTH = int((config_t.Z_MAX - config_t.Z_MIN) / (config_t.VOXEL_DEPTH))
 
-    config_t.FEATURE_WIDTH = int(config_t.INPUT_WIDTH / config_t.FEATURE_RATIO)
-    config_t.FEATURE_HEIGHT = int(config_t.INPUT_HEIGHT / config_t.FEATURE_RATIO)
-    return
+	config_t.FEATURE_WIDTH = int(config_t.INPUT_WIDTH / config_t.FEATURE_RATIO)
+	config_t.FEATURE_HEIGHT = int(config_t.INPUT_HEIGHT / config_t.FEATURE_RATIO)
+	return
 
 
 def selectTargetAnchors(config_t):
-    if config_t.TARGET_OBJ not in possibleOBJ:
-        raise Exception("Invalid target object type selected")
+	if config_t.TARGET_OBJ not in possibleOBJ:
+		raise Exception("Invalid target object type selected")
 
-    if config_t.TARGET_OBJ is 'Car':
-        # Anchor dimensions in meters
-        config_t.ANCHOR_LEN = 3.9
-        config_t.ANCHOR_WID = 1.6
-        config_t.ANCHOR_HEI = 1.56
-        # Anchor Z center
-        config_t.ANCHOR_Z = -1.0 - config_t.ANCHOR_HEI / 2
-        config_t.RPN_POS_IOU = 0.6      # Anchor Positive IoU minimum (positive match)
-        config_t.RPN_NEG_IOU = 0.45     # Anchor Negative IoU max (non-match)
+	if config_t.TARGET_OBJ is 'Car':
+		# Anchor dimensions in meters
+		config_t.ANCHOR_LEN = 3.9
+		config_t.ANCHOR_WID = 1.6
+		config_t.ANCHOR_HEI = 1.56
+		# Anchor Z center
+		config_t.ANCHOR_Z = -1.0 - config_t.ANCHOR_HEI / 2
+		config_t.RPN_POS_IOU = 0.6      # Anchor Positive IoU minimum (positive match)
+		config_t.RPN_NEG_IOU = 0.45     # Anchor Negative IoU max (non-match)
 
-    elif config_t.TARGET_OBJ is 'Pedestrian':
-        # Anchor dimensions in meters
-        config_t.ANCHOR_LEN = 0.8
-        config_t.ANCHOR_WID = 0.6
-        config_t.ANCHOR_HEI = 1.73
-        # Anchor Z center
-        config_t.ANCHOR_Z = -0.6 - config_t.ANCHOR_HEI / 2
-        config_t.RPN_POS_IOU = 0.5      # Anchor Positive IoU minimum (positive match)
-        config_t.RPN_NEG_IOU = 0.35     # Anchor Negative IoU max (non-match)
+	elif config_t.TARGET_OBJ is 'Pedestrian':
+		# Anchor dimensions in meters
+		config_t.ANCHOR_LEN = 0.8
+		config_t.ANCHOR_WID = 0.6
+		config_t.ANCHOR_HEI = 1.73
+		# Anchor Z center
+		config_t.ANCHOR_Z = -0.6 - config_t.ANCHOR_HEI / 2
+		config_t.RPN_POS_IOU = 0.5      # Anchor Positive IoU minimum (positive match)
+		config_t.RPN_NEG_IOU = 0.35     # Anchor Negative IoU max (non-match)
 
-    elif config_t.TARGET_OBJ is 'Cyclist':
-        # Anchor dimensions in meters
-        config_t.ANCHOR_LEN = 1.76
-        config_t.ANCHOR_WID = 0.6
-        config_t.ANCHOR_HEI = 1.73
-        # Anchor Z center
-        config_t.ANCHOR_Z = -0.6 - config_t.ANCHOR_HEI / 2
-        config_t.RPN_POS_IOU = 0.5      # Anchor Positive IoU minimum (positive match)
-        config_t.RPN_NEG_IOU = 0.35     # Anchor Negative IoU max (non-match)
-    return
+	elif config_t.TARGET_OBJ is 'Cyclist':
+		# Anchor dimensions in meters
+		config_t.ANCHOR_LEN = 1.76
+		config_t.ANCHOR_WID = 0.6
+		config_t.ANCHOR_HEI = 1.73
+		# Anchor Z center
+		config_t.ANCHOR_Z = -0.6 - config_t.ANCHOR_HEI / 2
+		config_t.RPN_POS_IOU = 0.5      # Anchor Positive IoU minimum (positive match)
+		config_t.RPN_NEG_IOU = 0.35     # Anchor Negative IoU max (non-match)
+	return
 
 
 def changeTargetObj(target, config_t):
-    if target not in possibleOBJ:
-        raise Exception("Invalid target object type selected")
+	if target not in possibleOBJ:
+		raise Exception("Invalid target object type selected")
 
-    config_t.TARGET_OBJ = target
-    selectTargetVoxels(config_t)
-    selectTargetAnchors(config_t)
-    return
+	config_t.TARGET_OBJ = target
+	selectTargetVoxels(config_t)
+	selectTargetAnchors(config_t)
+	return
 
 
 # Directory Info
@@ -129,45 +129,45 @@ cfg.VELODYNE_VERTICAL_RESOLUTION = 0.4 / 180 * math.pi
 cfg.VELODYNE_HEIGHT = 1.73
 ## RBG
 if cfg.DATA_SETS_TYPE == 'kitti':
-    cfg.IMAGE_WIDTH = 1242
-    cfg.IMAGE_HEIGHT = 375
-    cfg.IMAGE_CHANNEL = 3
+	cfg.IMAGE_WIDTH = 1242
+	cfg.IMAGE_HEIGHT = 375
+	cfg.IMAGE_CHANNEL = 3
 # Top
 if cfg.DATA_SETS_TYPE == 'kitti':
-    cfg.TOP_Y_MIN = -30
-    cfg.TOP_Y_MAX = +30
-    cfg.TOP_X_MIN = 0
-    cfg.TOP_X_MAX = 80
-    cfg.TOP_Z_MIN = -4.2
-    cfg.TOP_Z_MAX = 0.8
+	cfg.TOP_Y_MIN = -30
+	cfg.TOP_Y_MAX = +30
+	cfg.TOP_X_MIN = 0
+	cfg.TOP_X_MAX = 80
+	cfg.TOP_Z_MIN = -4.2
+	cfg.TOP_Z_MAX = 0.8
 
-    cfg.TOP_X_DIVISION = 0.1
-    cfg.TOP_Y_DIVISION = 0.1
-    cfg.TOP_Z_DIVISION = 0.2
+	cfg.TOP_X_DIVISION = 0.1
+	cfg.TOP_Y_DIVISION = 0.1
+	cfg.TOP_Z_DIVISION = 0.2
 
-    cfg.TOP_WIDTH = (cfg.TOP_X_MAX - cfg.TOP_X_MIN) // cfg.TOP_X_DIVISION
-    cfg.TOP_HEIGHT = (cfg.TOP_Y_MAX - cfg.TOP_Y_MIN) // cfg.TOP_Y_DIVISION
-    cfg.TOP_CHANNEL = (cfg.TOP_Z_MAX - cfg.TOP_Z_MIN) // cfg.TOP_Z_DIVISION
+	cfg.TOP_WIDTH = (cfg.TOP_X_MAX - cfg.TOP_X_MIN) // cfg.TOP_X_DIVISION
+	cfg.TOP_HEIGHT = (cfg.TOP_Y_MAX - cfg.TOP_Y_MIN) // cfg.TOP_Y_DIVISION
+	cfg.TOP_CHANNEL = (cfg.TOP_Z_MAX - cfg.TOP_Z_MIN) // cfg.TOP_Z_DIVISION
 
 # For camera and lidar coordination convert
 if cfg.DATA_SETS_TYPE == 'kitti':
-    # cal mean from train set
-    cfg.MATRIX_P2 = ([[719.787081,    0.,            608.463003, 44.9538775],
-                      [0.,            719.787081,    174.545111, 0.1066855],
-                      [0.,            0.,            1.,         3.0106472e-03],
-                      [0.,            0.,            0.,         0]])
+	# cal mean from train set
+	cfg.MATRIX_P2 = ([[719.787081,    0.,            608.463003, 44.9538775],
+					  [0.,            719.787081,    174.545111, 0.1066855],
+					  [0.,            0.,            1.,         3.0106472e-03],
+					  [0.,            0.,            0.,         0]])
 
-    # cal mean from train set
-    cfg.MATRIX_T_VELO_2_CAM = ([
-        [7.49916597e-03, -9.99971248e-01, -8.65110297e-04, -6.71807577e-03],
-        [1.18652889e-02, 9.54520517e-04, -9.99910318e-01, -7.33152811e-02],
-        [9.99882833e-01, 7.49141178e-03, 1.18719929e-02, -2.78557062e-01],
-        [0, 0, 0, 1]
-    ])
-    # cal mean from train set
-    cfg.MATRIX_R_RECT_0 = ([
-        [0.99992475, 0.00975976, -0.00734152, 0],
-        [-0.0097913, 0.99994262, -0.00430371, 0],
-        [0.00729911, 0.0043753, 0.99996319, 0],
-        [0, 0, 0, 1]
-    ])
+	# cal mean from train set
+	cfg.MATRIX_T_VELO_2_CAM = ([
+		[7.49916597e-03, -9.99971248e-01, -8.65110297e-04, -6.71807577e-03],
+		[1.18652889e-02, 9.54520517e-04, -9.99910318e-01, -7.33152811e-02],
+		[9.99882833e-01, 7.49141178e-03, 1.18719929e-02, -2.78557062e-01],
+		[0, 0, 0, 1]
+	])
+	# cal mean from train set
+	cfg.MATRIX_R_RECT_0 = ([
+		[0.99992475, 0.00975976, -0.00734152, 0],
+		[-0.0097913, 0.99994262, -0.00430371, 0],
+		[0.00729911, 0.0043753, 0.99996319, 0],
+		[0, 0, 0, 1]
+	])
