@@ -7,6 +7,7 @@
 # Created Dec 17, 2019
 
 import tensorflow as tf
+import time
 
 from config import cfg
 from utils import *
@@ -262,3 +263,7 @@ class VoxelNet(object):
 
 			return tag, ret_box3d_score, ret_summary
 		return tag, ret_box3d_score
+
+    def forwardPass(self, session, data):
+        """Perform a single forward pass of the network and get timing"""
+        pass
