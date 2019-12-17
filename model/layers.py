@@ -30,7 +30,7 @@ class VFELayer(object):
         aggregated = tf.reduce_max(pointwise, axis=1, keep_dims=True)
 
         # [K, T, units]
-        repeated = tf.tile(aggregated, [1, cfg.VOXEL_POINT_COUNT, 1])
+        repeated = tf.tile(aggregated, [1, cfg.POINT_PER_VOX, 1])
 
         # [K, T, 2 * units]
         concatenated = tf.concat([pointwise, repeated], axis=2)
