@@ -103,7 +103,7 @@ cfg.GPU_USE_COUNT = len(cfg.GPU_AVAILABLE.split(','))
 
 # General
 cfg.BV_LOG_FACTOR = 8       # Image log scale factor
-cfg.FEATURE_RATIO = 2
+cfg.FEATURE_RATIO = 2       # Output features are half the size of the inputs
 cfg.USE_CORNER2CENTER_AVG = True    # Use average or max version
 ## For Region Proposal Network's Non-Maximal Sort
 cfg.RPN_NMS_POST_TOPK = 20

@@ -55,12 +55,12 @@ class ConvMiddleNet(object):
 							   self.input, name='mid_conv3')
 			temp_conv = tf.transpose(temp_conv, perm=[0, 2, 3, 4, 1])
 			temp_conv = tf.reshape(temp_conv, [-1 cfg.INPUT_HEIGHT, cfg.INPUT_WIDTH, 128])
-
+			self.outputs = temp_conv
 			self.output_shape = [cfg.INPUT_HEIGHT, cfg.INPUT_WIDTH, 128]
 		return
 
 class RPN(object):
-	def __init__(self, input, alpha=1.5, beta=1, sigma, training=True, name=''):
+	def __init__(self, input, alpha=1.5, beta=1, sigma=3, training=True, name=''):
 		self.input = input
 		self.training = training
 		# Targets are ground-truth boxes, (delx, dely, delz, dell , delw, delh, rotation)
