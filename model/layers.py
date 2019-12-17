@@ -65,6 +65,11 @@ def ConvMD(M, Cin, Cout, k, s, p, input, training=True, activation=True, name='c
 
 
 def Deconv2D(Cin, Cout, k, s, p, input, training=True, name='deconv'):
+    # Cin = channels in
+    # Cout = channels out
+    # k = kernel size
+    # s = strides
+    # p = padding
     temp_p = np.array(p)
     temp_p = np.lib.pad(temp_p, (1, 1), 'constant', constant_values=(0, 0))
     paddings = (np.array(temp_p)).repeat(2).reshape(4, 2)
@@ -75,18 +80,4 @@ def Deconv2D(Cin, Cout, k, s, p, input, training=True, name='deconv'):
         temp_conv = tf.layers.batch_normalization(
             temp_conv, axis=-1, fused=True, training=training, reuse=tf.AUTO_REUSE, name=scope)
         return tf.nn.relu(temp_conv)
-
-
-def smooth_l1(deltas, targets, sigma=3.0):
-    sigma2 = sigma * sigma
-    diffs = tf.subtract(deltas, targets)
-    smooth_l1_signs = tf.cast(tf.less(tf.abs(diffs), 1.0 / sigma2), tf.float32)
-
-    smooth_l1_option1 = tf.multiply(diffs, diffs) * 0.5 * sigma2
-    smooth_l1_option2 = tf.abs(diffs) - 0.5 / sigma2
-    smooth_l1_add = tf.multiply(smooth_l1_option1, smooth_l1_signs) + \
-        tf.multiply(smooth_l1_option2, 1 - smooth_l1_signs)
-    smooth_l1 = smooth_l1_add
-
-    return smooth_l1
 
