@@ -12,6 +12,7 @@ import time
 from config import cfg
 from utils import *
 from model.networks import FeatureNet, ConvMiddleNet, RPN
+from model.helpers import average_gradients
 
 class VoxelNet(object):
 	def __init__(self, cls='Car', single_batch_size=2, learning_rate=0.001,
@@ -19,7 +20,7 @@ class VoxelNet(object):
 		# Initialze self variables
 		self.cls = cls
 		self.single_batch_size = single_batch_size
-		self.learning_rate = tf.Variable(float(learning_rate, trainable=False, dtype=tf.float32))
+		self.learning_rate = tf.Variable(float(learning_rate), trainable=False, dtype=tf.float32)
 		self.global_step = tf.Variable(1, trainable=False)
 		self.epoch = tf.Variable(0, trainable=False)
 		self.epoch_add_op = self.epoch.assign(self.epoch + 1)
@@ -51,7 +52,7 @@ class VoxelNet(object):
 				with tf.device('/gpu:{}'.format(dev)), tf.name_scope('gpu{}'.format(dev)):
 					feature = FeatureNet(training=is_train, batch_size=single_batch_size)
 					mid = ConvMiddleNet(feature.outputs, training=is_train)
-					rpn = RPN(mid.outputs, alpha, beta, sigma, training=is_train)
+					rpn = RPN(mid.outputs, alpha, beta, training=is_train)
 					tf.get_variable_scope().reuse_variables()
 
 					# Input
@@ -90,7 +91,8 @@ class VoxelNet(object):
 
 		self.anchors = cal_anchors()
 
-		self.rbg = tf.placeholder(tf.uint8, [None, cfg.IMAGE_HEIGHT, cfg.IMAGE_WIDTH, 3])
+		self.rgb = tf.placeholder(tf.uint8, [None, cfg.IMAGE_HEIGHT, cfg.IMAGE_WIDTH, 3])
+		self.bv = tf.placeholder(tf.uint8, [None, cfg.BV_LOG_FACTOR * cfg.INPUT_HEIGHT, cfg.BV_LOG_FACTOR * cfg.INPUT_WIDTH, 3])
 		self.bv_heatmap = tf.placeholder(tf.uint8, [None, cfg.BV_LOG_FACTOR * cfg.FEATURE_HEIGHT, cfg.BV_LOG_FACTOR * cfg.FEATURE_WIDTH, 3])
 		self.boxes2d = tf.placeholder(tf.float32, [None, 4])
 		self.boxes2d_scores = tf.placeholder(tf.float32, [None])
@@ -208,14 +210,15 @@ class VoxelNet(object):
 		tag = data[0]
 		label = data[1]
 		vox_feature = data[2]
+
 		vox_number = data[3]
 		vox_coordinate = data[4]
 		img = data[5]
 		lidar=data[6]
 
+		#print('predict', tag)
 		if summary:
 			batch_gt_boxes3d = label_to_gt_box3d(label, cls=self.cls, coordinate='lidar')
-		#print('predict', tag)
 
 		input_feed = {}
 		for idx in range(len(self.avail_gpus)):
@@ -239,7 +242,7 @@ class VoxelNet(object):
 			tmp_boxes2d = batch_boxes2d[batch_id, ind, ...]
 			tmp_scores = batch_probs[batch_id, ind]
 
-			boxes2d = corner_to_standup_box2d(center_to_corner_box2d(tmp, boxes2d, coordinate='lidar'))
+			boxes2d = corner_to_standup_box2d(center_to_corner_box2d(tmp_boxes2d, coordinate='lidar'))
 			ind = session.run(self.box2d_ind_after_nms, {self.boxes2d: boxes2d, self.boxes2d_scores: tmp_scores})
 			tmp_boxes3d = tmp_boxes3d[ind, ...]
 			tmp_scores = tmp_scores[ind]
@@ -268,9 +271,9 @@ class VoxelNet(object):
 		"""Perform a single forward pass of the network and get timing"""
 		tag = data[0]
 		label = data[1]
-		vox_feature = data[2]
-		vox_number = data[3]
-		vox_coordinate = data[4]
+		vox_feature = np.array(data[2])
+		vox_number = np.array(data[3])
+		vox_coordinate = np.array(data[4])
 		img = data[5]
 		lidar=data[6]
 
@@ -279,9 +282,8 @@ class VoxelNet(object):
 			input_feed[self.vox_feature[idx]] = vox_feature[idx]
 			input_feed[self.vox_number[idx]] = vox_number[idx]
 			input_feed[self.vox_coordinate[idx]] = vox_coordinate[idx]
-
 		output_feed = [self.prob_output, self.delta_output]
 		preRunTime = time.time()
-		probs, deltas = session.run(output_feed, input_feed)
+		probs, deltas = session.run(output_feed, input_feed, options=tf.RunOptions(report_tensor_allocations_upon_oom=True))
 		postRunTime = time.time()
 		return postRunTime - preRunTime

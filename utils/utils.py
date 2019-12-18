@@ -11,10 +11,7 @@
 
 import cv2
 import numpy as np
-import shapely.geometry
-import shapely.affinity
 import math
-from numba import jit
 
 from config import cfg
 from utils.box_overlaps import *

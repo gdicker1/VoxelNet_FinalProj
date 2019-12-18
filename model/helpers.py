@@ -7,6 +7,9 @@
 # Created Dec 17, 2019
 # Copied from https://github.com/tsinghua-rll/VoxelNet-tensorflow/
 
+import tensorflow as tf
+import numpy as np
+
 def smooth_l1(deltas, targets, sigma=3.0):
 	sigma2 = sigma * sigma
 	diffs = tf.subtract(deltas, targets)

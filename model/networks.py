@@ -11,8 +11,10 @@ import time
 
 from config import cfg
 from utils import *
-from model.layers import VFELayer, ConvMD, Deconv2D, smooth_l1
+from model.layers import VFELayer, ConvMD, Deconv2D
 from model.helpers import smooth_l1, build_input
+
+small_addon_for_BCE = 1e-6
 
 class FeatureNet(object):
 	def __init__(self, training, batch_size, name=''):
@@ -20,9 +22,9 @@ class FeatureNet(object):
 		self.training = training
 		self.batch_size = batch_size
 
-		self.feature = tf.placeholder(tf.float32, [None cfg.POINT_PER_VOX, name='feature'])
-		self.number = tf.placeholder(tf.int64, [None], name='number')
-		self.coordinate = tf.placeholder(tf.int64, [None, 4], name='coordinate')
+		self.feature = tf.placeholder(tf.float32, [None, cfg.POINT_PER_VOX, 7], name='feature')
+		self.number = tf.placeholder(tf.int32, [None], name='number')
+		self.coordinate = tf.placeholder(tf.int32, [None, 4], name='coordinate')
 
 		with tf.variable_scope(name, reuse=tf.AUTO_REUSE) as scope:
 			self.vfe1 = VFELayer(32, 'VFE-1')
@@ -30,6 +32,7 @@ class FeatureNet(object):
 			self.dense = tf.layers.Dense(128, tf.nn.relu, name='dense', _reuse=tf.AUTO_REUSE, _scope=scope)
 			self.batch_norm = tf.layers.BatchNormalization(name='batch_norm', fused=True, _reuse=tf.AUTO_REUSE, _scope=scope)
 		
+		mask = tf.not_equal(tf.reduce_max(self.feature, axis=2, keep_dims=True), 0)
 		mask = tf.not_equal(tf.reduce_max(self.feature, axis=2, keep_dims=True), 0)
 		temp = self.vfe1.apply(self.feature, mask, self.training)
 		temp = self.vfe2.apply(temp, mask, self.training)
@@ -50,11 +53,11 @@ class ConvMiddleNet(object):
 			temp_conv = ConvMD(3, 128, 64, 3, (2, 1, 1), (1,1,1),
 							   self.input, name='mid_conv1')
 			temp_conv = ConvMD(3, 64, 64, 3, (1, 1, 1), (0,1,1),
-							   self.input, name='mid_conv2')
+							   temp_conv, name='mid_conv2')
 			temp_conv = ConvMD(3, 64, 64, 3, (2, 1, 1), (1,1,1),
-							   self.input, name='mid_conv3')
+							   temp_conv, name='mid_conv3')
 			temp_conv = tf.transpose(temp_conv, perm=[0, 2, 3, 4, 1])
-			temp_conv = tf.reshape(temp_conv, [-1 cfg.INPUT_HEIGHT, cfg.INPUT_WIDTH, 128])
+			temp_conv = tf.reshape(temp_conv, [-1, cfg.INPUT_HEIGHT, cfg.INPUT_WIDTH, 128])
 			self.outputs = temp_conv
 			self.output_shape = [cfg.INPUT_HEIGHT, cfg.INPUT_WIDTH, 128]
 		return
@@ -89,7 +92,7 @@ class RPN(object):
 			# Block 2
 			#  2D Conv, 128 channels in, 128 channels out, 3x3 kernel, stride 2, padding 1
 			#  stride two halves the size of the input
-			temp = ConvMD(2, 128, 128, 3, (2,2), (1,1), self.input, training=self.training, name='rpn_conv5')
+			temp = ConvMD(2, 128, 128, 3, (2,2), (1,1), temp, training=self.training, name='rpn_conv5')
 			#  2D Conv, 128 channels in, 128 channels out, 3x3 kernel, stride 1, padding 1
 			temp = ConvMD(2, 128, 128, 3, (1,1), (1,1), temp, training=self.training, name='rpn_conv6')
 			temp = ConvMD(2, 128, 128, 3, (1,1), (1,1), temp, training=self.training, name='rpn_conv7')
@@ -103,7 +106,7 @@ class RPN(object):
 			# Block 3
 			#  2D Conv, 128 channels in, 128 channels out, 3x3 kernel, stride 2, padding 1
 			#  stride two halves the size of the input
-			temp = ConvMD(2, 128, 256, 3, (2,2), (1,1), self.input, training=self.training, name='rpn_conv11')
+			temp = ConvMD(2, 128, 256, 3, (2,2), (1,1), temp, training=self.training, name='rpn_conv11')
 			#  2D Conv, 128 channels in, 128 channels out, 3x3 kernel, stride 1, padding 1
 			temp = ConvMD(2, 256, 256, 3, (1,1), (1,1), temp, training=self.training, name='rpn_conv12')
 			temp = ConvMD(2, 256, 256, 3, (1,1), (1,1), temp, training=self.training, name='rpn_conv13')
@@ -116,12 +119,12 @@ class RPN(object):
 
 			# Concat
 			#  Creates a block [orig_input_height/2, orig_input_width/2, 256*3=768]
-			temp = tf.concat([deconv3, deconv2, deconv1])
+			temp = tf.concat([deconv3, deconv2, deconv1], -1)
 
 			# Outputs
 			#  Probability score map that gives likelihood of class
 			#  Perform 1x1 depth wise convolution and only have [orig_input_height/2, orig_input_width/2, 2] as output
-			cls_map = ConvMD(2, 768, 2, 1, (1,1), (0,0), temp, activation=False, training=self.training name='rpn_conv17')
+			cls_map = ConvMD(2, 768, 2, 1, (1,1), (0,0), temp, activation=False, training=self.training, name='rpn_conv17')
 			self.p_pos = tf.sigmoid(cls_map)
 			#  Regression map that gives bounding box info
 			#  Performs 1x1 depth wise convolution and only have [orig_input_height/2, orig_input_width/2, 14] as output
