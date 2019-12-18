@@ -99,7 +99,7 @@ cfg.DATA_DIR = os.path.join(cfg.ROOT_DIR, 'data')
 
 # GPU Info
 cfg.GPU_AVAILABLE = '0'
-cfg.GPU_USE_COUNT = len(cfg.GPU_AVAILABLE.split(','))
+cfg.GPU_USE_COUNT = 1
 cfg.GPU_MEMORY_FRACTION = 1
 
 # General
@@ -122,6 +122,10 @@ changeTargetObj('Car', cfg)
 
 # Dataset Info
 cfg.DATA_SETS_TYPE = 'kitti'
+cfg.TRAIN_DATA_LEN = 7480
+cfg.TEST_DATA_LEN = 7517
+cfg.BATCH_SIZE = 40
+cfg.AUG_NUM = 1000 # Let 1/4 of every batch size be augmented data
 
 # Sensor info
 cfg.VELODYNE_ANGULAR_RESOLUTION = 0.08 / 180 * math.pi
