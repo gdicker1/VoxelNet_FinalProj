@@ -79,7 +79,7 @@ def main(_):
 					flag, data = valid_loader.load(args.single_batch_size)
 					if flag:
 						valid_loader.reset()
-					theTime = model.forwardPass(sess, data)
+					theTime, _, _ = model.forwardPass(sess, data)
 					print('Forward pass took {} seconds'.format(theTime))
 					numIter += 1
 

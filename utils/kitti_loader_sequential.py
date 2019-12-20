@@ -15,6 +15,12 @@ from config import cfg
 from utils.data_aug import aug_data
 from utils.preprocess import process_pointcloud
 
+MODES = (
+			{'minHeight': 40, 'maxOcclusion': 0, 'maxTruncation': 0.15}, # easy
+			{'minHeight': 25, 'maxOcclusion': 1, 'maxTruncation': 0.30}, # moderate
+			{'minHeight': 25, 'maxOcclusion': 2, 'maxTruncation': 0.50}, # hard
+		)
+
 class KittiLoaderSeq(object):
 	# return:
 	# tag (N)
@@ -67,6 +73,8 @@ class KittiLoaderSeq(object):
 		print("Dataset total length: {}".format(self.dataset_size))
 		self.rgb_shape = (cfg.IMAGE_HEIGHT, cfg.IMAGE_WIDTH, 3)
 		self.load_index = 0
+		self.mode_indices = {'easy':[], 'moderate':[], 'hard':[]}
+		self.determineDifficulty()
 
 	def __enter__(self):
 		return self
@@ -76,6 +84,39 @@ class KittiLoaderSeq(object):
 
 	def __len__(self):
 		return self.dataset_size
+
+	# TODO Fix this function
+	def determineDifficulty(self):
+		labels = []
+		for load_index in range(self.dataset_size):
+			labels.append([line for line in open(
+	    	     			self.f_label[load_index], 'r').readlines()])
+		lables = np.array(labels)
+		easy_inds = []
+		mod_inds = []
+		hard_inds = []
+		for i,label in enumerate(labels):
+			for line in label:
+				line = line.split()
+				truncation = float(line[1])
+				occlusion = float(line[2])
+				height = float(line[8])
+				if(occlusion <=  MODES[0]['maxOcclusion'] and truncation <= MODES[0]['maxTruncation'] and height >= MODES[0]['minHeight']):
+					easy_inds.append(i)
+				elif(occlusion <=  MODES[1]['maxOcclusion'] and truncation <= MODES[1]['maxTruncation'] and height >= MODES[1]['minHeight']):
+					mod_inds.append(i)
+				elif(occlusion <=  MODES[2]['maxOcclusion'] and truncation <= MODES[2]['maxTruncation'] and height >= MODES[2]['minHeight']):
+					hard_inds.append(i)
+				else:
+					hard_inds.append(i) # just assume it's hard
+
+		# print('easy {}'.format(len(easy_inds)))
+		# print('moderate {}'.format(len(mod_inds)))
+		# print('hard {}'.format(len(hard_inds)))
+		self.mode_indices['easy'] = easy_inds
+		self.mode_indices['moderate'] = mod_inds
+		self.mode_indices['hard'] = hard_inds
+
 
 	def reset(self):
 		self.load_index = 0
@@ -93,7 +134,7 @@ class KittiLoaderSeq(object):
 		self.data_tag = [self.data_tag[i] for i in index]
 
 
-	def load(self, batch_size):
+	def load(self, batch_size=1):
 		if self.load_index >= self.dataset_size:
 			return None
 
@@ -121,7 +162,7 @@ class KittiLoaderSeq(object):
 			vox_coordinate.append(per_vox_coor)
 
 		#print('bsize', bsize)
-		#rint('vox_feature', np.array(vox_feature).shape)
+		#print('vox_feature', np.array(vox_feature).shape)
 		#print('vox_number', vox_number)
 
 		# Create augmented data
@@ -165,6 +206,38 @@ class KittiLoaderSeq(object):
 		return flag, ret
 		
 
+	def load_mode(self, mode):
+		indices = self.mode_indices[mode]
+		num_to_load = len(indices)
+
+		ret = []
+		for load_index in range(num_to_load):
+			labels, tag, voxel, rgb, raw_lidar = [], [], [], [], []
+			vox_feature, vox_number, vox_coordinate = [], [], []
+			rgb.append(cv2.resize(cv2.imread(
+						self.f_rgb[load_index]), (cfg.IMAGE_WIDTH, cfg.IMAGE_HEIGHT)))
+			raw_lidar.append(np.fromfile(
+				self.f_lidar[load_index], dtype=np.float32).reshape((-1, 4)))
+			labels.append([line for line in open(
+				self.f_label[load_index], 'r').readlines()])
+			tag.append(self.data_tag[load_index])
+			voxel.append(process_pointcloud(raw_lidar[-1]))
+			bsize, per_vox_feat, per_vox_num, per_vox_coor = build_input([voxel[-1]])
+			vox_feature.append(per_vox_feat)
+			vox_number.append(per_vox_num)
+			vox_coordinate.append(per_vox_coor)
+
+			ret.append((
+				np.array(tag),
+				np.array(labels),
+				np.array(vox_feature),
+				np.array(vox_number),
+				np.array(vox_coordinate),
+				np.array(rgb),
+				np.array(raw_lidar)
+			))
+
+		return ret
 
 
 

@@ -16,6 +16,11 @@ import math
 from config import cfg
 from utils.box_overlaps import *
 
+pos_color = (0, 255, 0) # green
+neg_color = (0, 0, 255) # red
+dont_care_color = (0, 255, 255) # yellow
+box_colors = (pos_color, neg_color, dont_care_color)
+
 
 def lidar_to_bird_view(x, y, factor=1):
 	# using the cfg.INPUT_XXX
@@ -332,7 +337,7 @@ def lidar_to_bird_view_img(lidar, factor=1):
 
 
 def draw_lidar_box3d_on_image(img, boxes3d, scores, gt_boxes3d=np.array([]),
-							  color=(0, 255, 255), gt_color=(255, 0, 255), thickness=1):
+							  colors=box_colors, gt_color=(255, 0, 255), thickness=1):
 	# Input:
 	#   img: (h, w, 3)
 	#   boxes3d (N, 7) [x, y, z, h, w, l, r]
@@ -341,9 +346,14 @@ def draw_lidar_box3d_on_image(img, boxes3d, scores, gt_boxes3d=np.array([]),
 	img = img.copy()
 	projections = lidar_box3d_to_camera_box(boxes3d, cal_projection=True)
 	gt_projections = lidar_box3d_to_camera_box(gt_boxes3d, cal_projection=True)
-
+	color = box_colors[-1]
+	
 	# draw projections
-	for qs in projections:
+	for i, qs in enumerate(projections):
+		if scores[i] >= 0.5:
+			color = colors[0]
+		else:
+			color = colors[1]
 		for k in range(0, 4):
 			i, j = k, (k + 1) % 4
 			cv2.line(img, (qs[i, 0], qs[i, 1]), (qs[j, 0],
@@ -376,7 +386,7 @@ def draw_lidar_box3d_on_image(img, boxes3d, scores, gt_boxes3d=np.array([]),
 
 
 def draw_lidar_box3d_on_birdview(birdview, boxes3d, scores, gt_boxes3d=np.array([]),
-								 color=(0, 255, 255), gt_color=(255, 0, 255), thickness=1, factor=1):
+								 colors=box_colors, gt_color=(255, 0, 255), thickness=1, factor=1):
 	# Input:
 	#   birdview: (h, w, 3)
 	#   boxes3d (N, 7) [x, y, z, h, w, l, r]
@@ -402,7 +412,14 @@ def draw_lidar_box3d_on_birdview(birdview, boxes3d, scores, gt_boxes3d=np.array(
 				 gt_color, thickness, cv2.LINE_AA)
 
 	# draw detections
-	for box in corner_boxes3d:
+	color = box_colors[-1]
+	
+	# draw projections
+	for i, box in enumerate(corner_boxes3d):
+		if scores[i] >= cfg.RPN_SCORE_THRESH:
+			color = colors[0]
+		else:
+			color = colors[1]
 		x0, y0 = lidar_to_bird_view(*box[0, 0:2], factor=factor)
 		x1, y1 = lidar_to_bird_view(*box[1, 0:2], factor=factor)
 		x2, y2 = lidar_to_bird_view(*box[2, 0:2], factor=factor)

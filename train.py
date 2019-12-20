@@ -12,6 +12,7 @@ import os
 import time
 import sys
 import tensorflow as tf
+import numpy as np
 import time
 
 from config import cfg
@@ -28,6 +29,8 @@ parser.add_argument('-n', '--tag', type=str, default='default',
 					help='set log tag')
 parser.add_argument('-b', '--single-batch-size', type=int, default=1,
 					help='set batch size for each GPU')
+parser.add_argument('-a', '--num-aug-per-batch', type=int, default=1,
+					help='the number of augmented data to create online per batch')
 parser.add_argument('-l', '--learning_rate', type=float, default=0.001,
 					help='initial learning-rate for training')
 parser.add_argument('-c', '--cls', type=str, default='Car',
@@ -38,8 +41,10 @@ args = parser.parse_args()
 dataset_dir = cfg.DATA_DIR
 log_dir = os.path.join(cfg.LOG_DIR, args.tag)
 save_model_dir = os.path.join(cfg.CHECKPOINT_DIR, args.tag)
+save_best_dir = os.path.join(cfg.CHECKPOINT_DIR, args.tag, 'best_model')
 os.makedirs(log_dir, exist_ok=True)
 os.makedirs(save_model_dir, exist_ok=True)
+os.makedirs(save_best_dir, exist_ok=True)
 
 def getTotalNumberOfParams(model):
 	"""Find out and print the total number of variables in the model"""
@@ -62,7 +67,7 @@ def main(_):
 		global save_model_dir
 		with KittiLoader(object_dir=os.path.join(dataset_dir, 'object', 'training'), require_shuffle=True,
 						 split_file=os.path.join(cfg.ROOT_DIR, 'DataSplits', 'train.txt'),
-			             is_testset=False, batch_size=args.single_batch_size, aug=True, aug_num=1) as train_loader, \
+			             is_testset=False, batch_size=args.single_batch_size, aug=False, aug_num=0) as train_loader, \
 			KittiLoader(object_dir=os.path.join(dataset_dir, 'object', 'training'), require_shuffle=False,
 						 split_file=os.path.join(cfg.ROOT_DIR, 'DataSplits', 'val.txt'),
 			             is_testset=False, batch_size=args.single_batch_size, aug=False, aug_num=0) as valid_loader:
@@ -96,25 +101,31 @@ def main(_):
 
 				# Train and validate
 				iter_per_epoch = int(len(train_loader) / (args.single_batch_size*cfg.GPU_USE_COUNT))
-				print('iter_per_epoch={}'.format(iter_per_epoch))
 				is_summary, is_summary_image, is_validate = False, False, False
-				save_model_interval = int(iter_per_epoch / 3)
 				
 				summary_interval = 5
 				summary_image_interval = 20
 				#summary_image_interval = 1
 				save_model_interval = int(iter_per_epoch / 3)
 				validate_interval = 60
+				bestValLoss = 100000
 
+				print('\n--------------------------------------------------------------')
+				print('Training parameters')
+				print('batch size={} with {} augmented members added per batch'.format(args.single_batch_size, args.num_aug_per_batch))
+				print('\tnum members per pass {}'.format(args.single_batch_size+args.num_aug_per_batch))
+				print('max epoch={}'.format(args.max_epoch))
 				print('iter_per_epoch={}'.format(iter_per_epoch))
-				print('summary_interval', summary_interval)
-				print('summary_image_interval', summary_image_interval)
-				print('save_model_interval', save_model_interval)
-				print('validate_interval', validate_interval)
+				print('current epoch={}'.format(model.epoch.eval()))
+				print('summary_interval={}'.format(summary_interval))
+				print('summary_image_interval={}'.format(summary_image_interval))
+				print('save_model_interval={}'.format(save_model_interval))
+				print('validate_interval={}'.format(validate_interval))
 
 				summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
 				startTraining = time.time()
-				while model.epoch.eval() < args.max_epoch:
+				#while model.epoch.eval() < args.max_epoch:
+				while True:
 					is_summary, is_summary_image, is_validate = False, False, False
 					iter = model.global_step.eval()
 					print('iteration = {}'.format(iter))
@@ -140,9 +151,11 @@ def main(_):
 					print('Time since training started {} secs'.format(time.time() - startTraining))
 
 					if is_summary:
+						print('\twritting summary')
 						summary_writer.add_summary(ret[-1], iter)
 
 					if is_summary_image:
+						print('\tmaking images')
 						flag, valdat = valid_loader.load(args.single_batch_size)
 						if flag:
 							valid_loader.reset()
@@ -150,16 +163,26 @@ def main(_):
 						summary_writer.add_summary(ret[-1], iter)
 
 					if is_validate:
-						flag, valdat = valid_loader.load(args.single_batch_size)
-						if flag:
-							valid_loader.reset()
-						ret = model.validate_step(sess, valdat, summary=True)
+						print('\trunning validate')
+						losses = []
+						for i in range(50):
+							flag, valdat = valid_loader.load(args.single_batch_size)
+							if flag:
+								valid_loader.reset()
+							ret = model.validate_step(sess, valdat, summary=True)
+							losses.append(ret[0])
+						ave_loss = np.average(np.array(losses))
+						if ave_loss < bestValLoss:
+							print('\tnew best average validation loss for 50 forward passes was {} now {} at iteration {}'.format(bestValLoss, ave_loss, iter))
+							bestValLoss = ave_loss
+							model.saver.save(sess, os.path.join(save_best_dir, 'checkpoint'), global_step=model.global_step)
 
 					if check_if_should_pause(args.tag):
+						print('\tsaving model')
 						model.saver.save(sess, os.path.join(save_model_dir, 'checkpoint'), global_step=model.global_step)
 
 				stopTraining = time.time()
-				print('Training took a total of {} secs'.format(stopTraining - startTraining))
+				print('Training took a total of {} secs for {} total iterations'.format(stopTraining - startTraining, args.max_epoch*iter_per_epoch))
 
 if __name__ == '__main__':
 	tf.app.run(main)

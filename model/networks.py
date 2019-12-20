@@ -14,7 +14,7 @@ from utils import *
 from model.layers import VFELayer, ConvMD, Deconv2D
 from model.helpers import smooth_l1, build_input
 
-small_addon_for_BCE = 1e-6
+small_addon_for_BCE = 1e-6 # small add-on for Binary Cross Entropy
 
 class FeatureNet(object):
 	def __init__(self, training, batch_size, name=''):

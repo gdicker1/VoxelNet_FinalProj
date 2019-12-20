@@ -286,4 +286,4 @@ class VoxelNet(object):
 		preRunTime = time.time()
 		probs, deltas = session.run(output_feed, input_feed, options=tf.RunOptions(report_tensor_allocations_upon_oom=True))
 		postRunTime = time.time()
-		return postRunTime - preRunTime
+		return postRunTime - preRunTime, probs, deltas

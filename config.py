@@ -108,11 +108,14 @@ cfg.FEATURE_RATIO = 2       # Output features are half the size of the inputs
 cfg.USE_CORNER2CENTER_AVG = True    # Use average or max version
 ## For Region Proposal Network's Non-Maximal Sort
 cfg.RPN_NMS_POST_TOPK = 20
-cfg.RPN_NMS_THRESH = 0.3
+cfg.RPN_NMS_THRESH = 0.1
 cfg.RPN_SCORE_THRESH = 0.96
 ## For 2d proposal to 3d proposal
 cfg.PROPOSAL3D_Z_MIN = -2.3
 cfg.PROPOSAL3D_Z_MAX = 1.5
+# For precision-recall
+cfg.IOU_THRESH = 0.7 # Defined by KITTI dataset people
+cfg.THRESHOLD_BINS = 40
 
 # Target and Voxel info
 cfg.VOXEL_WIDTH = 0.2       # Voxel width (x dim) in meters
